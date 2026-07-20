@@ -10,6 +10,7 @@ import AppHeader from '@/components/AppHeader.vue'
 import AppFooter from '@/components/AppFooter.vue'
 import Sidebar from '@/components/Sidebar.vue'
 import CommentSection from '@/components/CommentSection.vue'
+import ParticleBackground from '@/components/ParticleBackground.vue'
 
 const route = useRoute()
 const article = ref<ArticleDetail | null>(null)
@@ -37,6 +38,7 @@ function renderMarkdown(md: string): string {
 
 <template>
   <div class="article-layout">
+    <ParticleBackground />
     <AppHeader />
     <div class="main-body">
       <main class="content">

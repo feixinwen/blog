@@ -2,10 +2,12 @@
 import AppHeader from '@/components/AppHeader.vue'
 import AppFooter from '@/components/AppFooter.vue'
 import Sidebar from '@/components/Sidebar.vue'
+import ParticleBackground from '@/components/ParticleBackground.vue'
 </script>
 
 <template>
   <div class="layout">
+    <ParticleBackground />
     <AppHeader />
     <div class="main-body">
       <main class="content">
@@ -23,8 +25,8 @@ import Sidebar from '@/components/Sidebar.vue'
 </template>
 
 <style scoped>
-.layout { min-height: 100vh; display: flex; flex-direction: column; background: #f5f6f7; }
-.main-body { max-width: 1100px; margin: 24px auto; display: flex; gap: 24px; flex: 1; width: 100%; padding: 0 20px; box-sizing: border-box; }
+.layout { min-height: 100vh; display: flex; flex-direction: column; position: relative; }
+.main-body { max-width: 1100px; margin: 24px auto; display: flex; gap: 24px; flex: 1; width: 100%; padding: 0 20px; box-sizing: border-box; position: relative; z-index: 1; }
 .content { flex: 1; min-width: 0; }
 .about-card { background: #fff; border-radius: 6px; padding: 30px; }
 .about-card h1 { margin: 0 0 16px 0; font-size: 24px; }
