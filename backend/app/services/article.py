@@ -1,5 +1,6 @@
 import logging
 
+from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app.models.article import Article, ArticleTagLink
@@ -44,7 +45,9 @@ def list_articles(
         logger.info(f"按标签筛选文章: tag_slug={tag_slug}")
 
     # 查询总条数（分页前先数一下共有多少条）
-    total = db.exec(select(query.subquery()).count()).one()  # type: ignore
+    total = db.exec(
+        select(func.count()).select_from(query.subquery())
+    ).one()
 
     # 分页 + 倒序排列
     query = query.order_by(Article.created_at.desc()).offset(

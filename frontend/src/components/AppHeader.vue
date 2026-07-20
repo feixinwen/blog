@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
+
+const hasToken = computed(() => !!localStorage.getItem('token'))
 </script>
 
 <template>
@@ -9,6 +12,8 @@ import { RouterLink } from 'vue-router'
       <nav>
         <RouterLink to="/">首页</RouterLink>
         <RouterLink to="/about">关于</RouterLink>
+        <RouterLink v-if="hasToken" to="/admin/articles">管理</RouterLink>
+        <RouterLink v-else to="/admin/login">登录</RouterLink>
       </nav>
     </div>
   </header>

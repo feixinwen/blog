@@ -55,6 +55,21 @@ export interface ArticleDetail {
   updated_at: string
 }
 
+export interface ArticleAdminDetail {
+  id: number
+  title: string
+  slug: string
+  content: string
+  summary: string | null
+  cover_url: string | null
+  category_id: number | null
+  category_name: string | null
+  tag_ids: number[]
+  is_published: boolean
+  created_at: string
+  updated_at: string
+}
+
 export interface PaginatedResponse<T> {
   items: T[]
   total: number
@@ -128,6 +143,9 @@ export const login = (username: string, password: string) =>
 export const fetchAdminArticles = () =>
   api.get<ArticleDetail[]>('/api/admin/articles')
 
+export const fetchAdminArticle = (id: number) =>
+  api.get<ArticleAdminDetail>(`/api/admin/articles/${id}`)
+
 export const createArticle = (data: any) =>
   api.post<ArticleDetail>('/api/admin/articles', data)
 
@@ -166,3 +184,11 @@ export const fetchAdminComments = () =>
 
 export const deleteComment = (id: number) =>
   api.delete(`/api/admin/comments/${id}`)
+
+export const uploadImage = (file: File) => {
+  const form = new FormData()
+  form.append('file', file)
+  return api.post<{ url: string }>('/api/admin/upload', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}

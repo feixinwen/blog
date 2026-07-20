@@ -3,7 +3,7 @@ import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import {
-  fetchArticle, fetchAdminCategories, fetchAdminTags,
+  fetchAdminArticle, fetchAdminCategories, fetchAdminTags,
   createArticle, updateArticle, type Category, type Tag,
 } from '@/api'
 import { RouterLink } from 'vue-router'
@@ -13,7 +13,7 @@ const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 
-const isEdit = !!route.params.id  // url 里有 id = 编辑模式
+const isEdit = !!route.params.id
 const articleId = Number(route.params.id)
 
 const title = ref('')
@@ -35,25 +35,18 @@ onMounted(async () => {
   tags.value = tagRes.data
 
   if (isEdit) {
-    const res = await fetchArticleById(articleId)
+    const res = await fetchAdminArticle(articleId)
     const a = res.data
     title.value = a.title
     slug.value = a.slug
     content.value = a.content
     summary.value = a.summary || ''
     coverUrl.value = a.cover_url || ''
-    // 这里的 article detail 不返回 category_id 和 tag_ids，简化处理
+    categoryId.value = a.category_id
+    selectedTagIds.value = a.tag_ids
+    isPublished.value = a.is_published
   }
 })
-
-// 编辑模式需要重新请求获取完整字段（含 tag_ids）
-async function fetchArticleById(id: number) {
-  // 后台接口返回的 ArticleDetail 没有 tag_ids 和 category_id
-  // 这里暂时用公开接口获取，后续可以扩展后台接口
-  // 简化：编辑时 category_id 和 tag_ids 不影响，提交时用当前选择的
-  const res = await fetchAdminArticles()
-  return { data: res.data.find(a => a.id === id)! }
-}
 
 async function handleSave() {
   if (!title.value || !slug.value || !content.value) {

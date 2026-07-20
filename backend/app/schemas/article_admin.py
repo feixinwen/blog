@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, Field
 
 
@@ -23,3 +25,21 @@ class ArticleUpdate(BaseModel):
     category_id: int | None = None
     tag_ids: list[int] | None = None  # None 表示不修改标签
     is_published: bool | None = None
+
+
+class ArticleAdminDetail(BaseModel):
+    """后台文章详情 —— 包含编辑需要的所有字段"""
+    id: int
+    title: str
+    slug: str
+    content: str
+    summary: str | None
+    cover_url: str | None
+    category_id: int | None
+    category_name: str | None
+    tag_ids: list[int]
+    is_published: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}

@@ -8,7 +8,7 @@ from app.core.deps import get_current_user, get_db
 from app.models.article import Article, ArticleTagLink
 from app.models.user import User
 from app.schemas.article import ArticleDetailOut
-from app.schemas.article_admin import ArticleCreate, ArticleUpdate
+from app.schemas.article_admin import ArticleAdminDetail, ArticleCreate, ArticleUpdate
 
 router = APIRouter(prefix="/api/admin/articles", tags=["后台-文章"])
 logger = logging.getLogger(__name__)
@@ -43,6 +43,38 @@ def admin_list_articles(
             )
         )
     return result
+
+
+@router.get("/{article_id}", response_model=ArticleAdminDetail)
+def admin_get_article(
+    article_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """获取文章完整信息（用于编辑页面回填）"""
+    article = db.get(Article, article_id)
+    if article is None:
+        raise HTTPException(status_code=404, detail="文章不存在")
+
+    # 查关联的标签 ID 列表
+    links = db.exec(
+        select(ArticleTagLink.tag_id).where(ArticleTagLink.article_id == article_id)
+    ).all()
+
+    return ArticleAdminDetail(
+        id=article.id,
+        title=article.title,
+        slug=article.slug,
+        content=article.content,
+        summary=article.summary,
+        cover_url=article.cover_url,
+        category_id=article.category_id,
+        category_name=article.category.name if article.category else None,
+        tag_ids=list(links),
+        is_published=article.is_published,
+        created_at=article.created_at,
+        updated_at=article.updated_at,
+    )
 
 
 @router.post("", response_model=ArticleDetailOut, status_code=201)
@@ -115,9 +147,11 @@ def admin_update_article(
     # 如果传了标签列表，则替换关联的标签
     if tag_ids is not None:
         # 删掉旧关联
-        db.exec(
+        old_links = db.exec(
             select(ArticleTagLink).where(ArticleTagLink.article_id == article_id)
-        ).delete()  # type: ignore
+        ).all()
+        for link in old_links:
+            db.delete(link)
         # 建新关联
         for tag_id in tag_ids:
             db.add(ArticleTagLink(article_id=article.id, tag_id=tag_id))

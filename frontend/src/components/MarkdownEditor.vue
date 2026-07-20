@@ -3,11 +3,14 @@ import { ref, watch } from 'vue'
 import { marked } from 'marked'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
+import { uploadImage } from '@/api'
 
 const props = defineProps<{ modelValue: string }>()
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 
 const preview = ref('')
+const textareaRef = ref<HTMLTextAreaElement | null>(null)
+const uploading = ref(false)
 
 marked.setOptions({
   highlight(code: string, lang: string) {
@@ -24,13 +27,56 @@ function update(val: string) {
 }
 
 watch(() => props.modelValue, (v) => { preview.value = marked.parse(v || '') as string }, { immediate: true })
+
+async function handleUpload() {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/*'
+  input.onchange = async () => {
+    const file = input.files?.[0]
+    if (!file) return
+    uploading.value = true
+    try {
+      const res = await uploadImage(file)
+      const url = res.data.url
+      const tag = `![${file.name}](${url})`
+
+      // 在光标位置插入，或追加到末尾
+      const ta = textareaRef.value
+      if (ta) {
+        const start = ta.selectionStart
+        const end = ta.selectionEnd
+        const newVal = props.modelValue.slice(0, start) + tag + props.modelValue.slice(end)
+        update(newVal)
+        // 恢复焦点和光标位置
+        setTimeout(() => {
+          ta.focus()
+          ta.setSelectionRange(start + tag.length, start + tag.length)
+        })
+      } else {
+        update(props.modelValue + '\n' + tag)
+      }
+    } catch {
+      alert('图片上传失败，请重试')
+    } finally {
+      uploading.value = false
+    }
+  }
+  input.click()
+}
 </script>
 
 <template>
   <div class="editor">
     <div class="pane">
-      <div class="pane-header">编辑</div>
+      <div class="pane-header">
+        编辑
+        <button class="btn-upload" @click="handleUpload" :disabled="uploading">
+          {{ uploading ? '上传中...' : '上传图片' }}
+        </button>
+      </div>
       <textarea
+        ref="textareaRef"
         :value="modelValue"
         @input="update(($event.target as HTMLTextAreaElement).value)"
         placeholder="使用 Markdown 语法编写..."
@@ -63,6 +109,22 @@ watch(() => props.modelValue, (v) => { preview.value = marked.parse(v || '') as 
   font-size: 13px;
   color: #666;
   border-bottom: 1px solid #ddd;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.btn-upload {
+  background: #4a90d9;
+  color: #fff;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.btn-upload:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 textarea {
   flex: 1;

@@ -1,8 +1,12 @@
 import logging
 from contextlib import asynccontextmanager
 
+import os
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlmodel import SQLModel
 
 from app.core.config import settings
@@ -55,6 +59,12 @@ app.add_middleware(
 )
 
 
+# 挂载上传目录（作为静态文件服务）
+upload_path = Path(settings.upload_dir)
+upload_path.mkdir(parents=True, exist_ok=True)
+app.mount(settings.upload_url_prefix, StaticFiles(directory=str(upload_path)), name="uploads")
+
+
 @app.get("/")
 def root():
     return {"message": "博客 API 运行中"}
@@ -77,9 +87,11 @@ from app.api.admin.auth import router as admin_auth_router
 from app.api.admin.categories import router as admin_categories_router
 from app.api.admin.comments import router as admin_comments_router
 from app.api.admin.tags import router as admin_tags_router
+from app.api.admin.upload import router as admin_upload_router
 
 app.include_router(admin_auth_router)
 app.include_router(admin_articles_router)
 app.include_router(admin_categories_router)
 app.include_router(admin_comments_router)
 app.include_router(admin_tags_router)
+app.include_router(admin_upload_router)
