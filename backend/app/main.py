@@ -74,11 +74,13 @@ def root():
 from app.api.public.articles import router as public_articles_router
 from app.api.public.categories import router as public_categories_router
 from app.api.public.comments import router as public_comments_router
+from app.api.public.site import router as public_site_router
 from app.api.public.tags import router as public_tags_router
 
 app.include_router(public_articles_router)
 app.include_router(public_categories_router)
 app.include_router(public_comments_router)
+app.include_router(public_site_router)
 app.include_router(public_tags_router)
 
 # 后台路由

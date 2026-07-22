@@ -43,7 +43,7 @@ onMounted(loadArticles)
       title="我的博客"
       subtitle="用代码记录思考与成长"
       :slice-count="4"
-      :interval="25000"
+      :interval="15000"
     />
     <AppHeader />
     <div id="article-list" class="main-body">

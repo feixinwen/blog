@@ -2,9 +2,9 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 // ===== 动画常量 =====
-const SLICE_DELAY = 80        // 每个切片依次延迟 ms
-const TRANSITION_DURATION = 1200  // 滑入时长 ms
-const FADE_DURATION = 300     // 整体淡出 ms
+const SLICE_DELAY = 80
+const TRANSITION_DURATION = 1200
+const FADE_DURATION = 300
 
 const props = withDefaults(defineProps<{
   images: string[]
@@ -25,17 +25,14 @@ const isAnimating = ref(false)
 const sliceActive = ref(false)
 const slicesFading = ref(false)
 
-let timer: ReturnType<typeof setInterval> | null = null
-let fadeOutTimer: ReturnType<typeof setTimeout> | null = null
+let autoTimer: ReturnType<typeof setTimeout> | null = null
+let animTimer: ReturnType<typeof setTimeout> | null = null
+let fadeTimer: ReturnType<typeof setTimeout> | null = null
 
 const total = computed(() => props.images.length)
 const currentImage = computed(() => props.images[currentIndex.value])
-const nextImage = computed(() => {
-  if (nextIndex.value === null) return ''
-  return props.images[nextIndex.value]
-})
 
-// 每个切片的 clip-path：只露出自己那条
+// 每个切片用 clip-path 裁出自己那条
 function sliceClipPath(i: number /* 1-indexed */): string {
   const n = props.sliceCount
   const left = ((i - 1) / n) * 100
@@ -43,28 +40,36 @@ function sliceClipPath(i: number /* 1-indexed */): string {
   return `inset(0 ${right}% 0 ${left}%)`
 }
 
+// 预加载 + 启动轮播
 onMounted(() => {
   props.images.forEach(src => {
-    const img = new Image()
-    img.onerror = () => console.warn(`Banner 图片加载失败: ${src}`)
-    img.src = src
+    new Image().src = src
   })
-  if (total.value > 1) timer = setInterval(nextSlide, props.interval)
+  if (total.value > 1) scheduleNext(props.interval)
 })
 onUnmounted(() => {
-  if (timer) clearInterval(timer)
-  if (fadeOutTimer) clearTimeout(fadeOutTimer)
+  if (autoTimer) clearTimeout(autoTimer)
+  if (animTimer) clearTimeout(animTimer)
+  if (fadeTimer) clearTimeout(fadeTimer)
 })
+
+// 递归定时：动画全部完成后才倒计时下一次
+function scheduleNext(delay: number) {
+  if (autoTimer) clearTimeout(autoTimer)
+  autoTimer = setTimeout(() => {
+    nextSlide()
+  }, delay)
+}
 
 function nextSlide() {
   if (isAnimating.value || total.value <= 1) return
-  transitionTo((currentIndex.value + 1) % total.value)
-  resetTimer()
+  const next = (currentIndex.value + 1) % total.value
+  transitionTo(next)
 }
 function prevSlide() {
   if (isAnimating.value || total.value <= 1) return
-  transitionTo(currentIndex.value === 0 ? total.value - 1 : currentIndex.value - 1)
-  resetTimer()
+  const next = currentIndex.value === 0 ? total.value - 1 : currentIndex.value - 1
+  transitionTo(next)
 }
 
 function transitionTo(next: number) {
@@ -73,34 +78,35 @@ function transitionTo(next: number) {
   sliceActive.value = false
   slicesFading.value = false
 
+  // 双 RAF：确保浏览器先绘制切片的初始位置（屏幕外），再触发滑入
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       sliceActive.value = true
     })
   })
 
+  // 等最后一片滑到位
   const lastSliceDone = (props.sliceCount - 1) * SLICE_DELAY + TRANSITION_DURATION
-  fadeOutTimer = setTimeout(() => {
+  animTimer = setTimeout(() => {
+    // 此时切片完全遮住底层，安全切换背景图
     currentIndex.value = next
+    // 切片层整体淡出
     slicesFading.value = true
+
+    // 淡出完成后清理
+    fadeTimer = setTimeout(() => {
+      nextIndex.value = null
+      sliceActive.value = false
+      slicesFading.value = false
+      isAnimating.value = false
+      // 动画彻底结束，开始下一次倒计时
+      scheduleNext(props.interval)
+    }, FADE_DURATION)
   }, lastSliceDone)
 }
 
-function onSlicesTransitionEnd(e: TransitionEvent) {
-  if (e.propertyName === 'opacity' && slicesFading.value) {
-    nextIndex.value = null
-    sliceActive.value = false
-    slicesFading.value = false
-    isAnimating.value = false
-  }
-}
-
-function resetTimer() {
-  if (timer) clearInterval(timer)
-  if (total.value > 1) timer = setInterval(nextSlide, props.interval)
-}
-function stopTimer() { if (timer) clearInterval(timer) }
-function startTimer() { if (total.value > 1 && !timer) timer = setInterval(nextSlide, props.interval) }
+function stopTimer() { if (autoTimer) { clearTimeout(autoTimer); autoTimer = null } }
+function resumeTimer() { if (!autoTimer && total.value > 1) scheduleNext(props.interval) }
 
 function scrollDown() {
   emit('scrollToContent')
@@ -112,7 +118,7 @@ function scrollDown() {
   <div
     class="banner-slider"
     @mouseenter="stopTimer"
-    @mouseleave="startTimer"
+    @mouseleave="resumeTimer"
   >
     <!-- 底层：完整当前图 -->
     <div
@@ -120,13 +126,11 @@ function scrollDown() {
       :style="{ backgroundImage: `url(${currentImage})` }"
     />
 
-    <!-- 切片层：每个切片覆盖整个 banner，clip-path 裁出各自条带 -->
-    <!-- 所有切片背景图完全一致，像素级对齐，不存在拼接问题 -->
+    <!-- 切片层 -->
     <div
       v-if="nextIndex !== null"
       class="slices-layer"
       :class="{ 'slices-fading': slicesFading }"
-      @transitionend="onSlicesTransitionEnd"
     >
       <div
         v-for="i in sliceCount"
@@ -138,7 +142,7 @@ function scrollDown() {
           'slice-in': sliceActive,
         }"
         :style="{
-          backgroundImage: `url(${nextImage})`,
+          backgroundImage: `url(${images[nextIndex]})`,
           clipPath: sliceClipPath(i),
           transitionDelay: `${(i - 1) * SLICE_DELAY}ms`,
         }"
@@ -163,14 +167,6 @@ function scrollDown() {
     <button v-if="total > 1" class="nav-btn nav-prev" @click="prevSlide">&lt;</button>
     <button v-if="total > 1" class="nav-btn nav-next" @click="nextSlide">&gt;</button>
 
-    <!-- 指示点 -->
-    <div v-if="total > 1" class="dots">
-      <span
-        v-for="i in total" :key="i"
-        :class="{ active: i - 1 === currentIndex }"
-        @click="transitionTo(i - 1); resetTimer()"
-      />
-    </div>
   </div>
 </template>
 
@@ -181,34 +177,22 @@ function scrollDown() {
   height: 100vh;
   overflow: hidden;
 }
-
-/* === 底层 === */
 .bg-layer {
-  position: absolute;
-  inset: 0;
+  position: absolute; inset: 0;
   background-size: 100% 100%;
   background-position: center;
   z-index: 1;
 }
-
-/* === 切片层 === */
 .slices-layer {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
+  position: absolute; inset: 0; z-index: 2;
   transition: opacity v-bind('`${FADE_DURATION}ms`') ease-out;
 }
-.slices-fading {
-  opacity: 0;
-  pointer-events: none;
-}
+.slices-fading { opacity: 0; pointer-events: none; }
 
-/* 每个切片覆盖整个 banner，clip-path 只露出自己那条 */
 .slice {
-  position: absolute;
-  inset: 0;
-  background-size: 100% 100%;   /* 和底层完全一致 */
-  background-position: center;  /* 和底层完全一致 */
+  position: absolute; inset: 0;
+  background-size: 100% 100%;
+  background-position: center;
   transition: transform v-bind('`${TRANSITION_DURATION}ms`') cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform;
 }
@@ -216,16 +200,11 @@ function scrollDown() {
 .slice-from-bottom { transform: translateY(100%); }
 .slice-in { transform: translateY(0) !important; }
 
-/* === 暗色遮罩 === */
 .overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
+  position: absolute; inset: 0; z-index: 3;
   background: rgba(0, 0, 0, 0.3);
   pointer-events: none;
 }
-
-/* === 文字 === */
 .banner-text {
   position: absolute; inset: 0; z-index: 4;
   display: flex; flex-direction: column;
@@ -233,17 +212,52 @@ function scrollDown() {
   pointer-events: none;
 }
 .banner-text h1 {
-  color: #fff; font-size: 42px; font-weight: 700;
-  letter-spacing: 6px; text-shadow: 0 2px 12px rgba(0,0,0,0.4);
-  margin: 0 0 12px;
+  font-family: 'STKaiti', 'KaiTi', '楷体', 'STSong', serif;
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: 8px;
+  margin: 0 0 14px;
+  cursor: default;
+  user-select: none;
+  pointer-events: auto;  /* 父容器 pointer-events: none，这里恢复使 :hover 生效 */
+  /* 默认：白色 + 立体阴影 + 光晕 */
+  color: #fff;
+  text-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.35),
+    0 0 20px rgba(255, 255, 255, 0.15);
+  transition: text-shadow 0.3s;
+}
+/* 悬停：暖金粉渐变在文字内流动 */
+.banner-text h1:hover {
+  background: linear-gradient(
+    135deg,
+    #f0c27b 0%,
+    #e2b0ff 20%,
+    #fbc2eb 40%,
+    #a1c4fd 60%,
+    #f0c27b 80%,
+    #e2b0ff 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none;
+  animation: warm-flow 3s linear infinite;
+}
+@keyframes warm-flow {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
 }
 .banner-text p {
-  color: rgba(255,255,255,0.8); font-size: 16px;
-  letter-spacing: 3px; text-shadow: 0 1px 6px rgba(0,0,0,0.3);
+  font-family: 'STKaiti', 'KaiTi', '楷体', 'STSong', serif;
+  color: rgba(255,255,255,0.75);
+  font-size: 17px;
+  letter-spacing: 4px;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.3);
   margin: 0;
 }
 
-/* === 向下箭头 === */
 .scroll-arrow {
   position: absolute; bottom: 30px; left: 50%;
   transform: translateX(-50%); z-index: 4; cursor: pointer;
@@ -262,7 +276,6 @@ function scrollDown() {
   50% { opacity: 1; transform: rotate(45deg) translate(4px,4px); }
 }
 
-/* === 左右按钮 === */
 .nav-btn {
   position: absolute; top: 50%; transform: translateY(-50%); z-index: 4;
   background: rgba(255,255,255,0.15); border: none; color: #fff;
@@ -273,18 +286,6 @@ function scrollDown() {
 .nav-btn:hover { background: rgba(255,255,255,0.3); }
 .nav-prev { left: 20px; }
 .nav-next { right: 20px; }
-
-/* === 指示点 === */
-.dots {
-  position: absolute; bottom: 80px; left: 50%;
-  transform: translateX(-50%); z-index: 4; display: flex; gap: 10px;
-}
-.dots span {
-  width: 10px; height: 10px; border-radius: 50%;
-  background: rgba(255,255,255,0.4);
-  cursor: pointer; transition: background 0.3s, transform 0.3s;
-}
-.dots span.active { background: #fff; transform: scale(1.2); }
 
 @media (max-width: 768px) {
   .banner-text h1 { font-size: 28px; letter-spacing: 3px; }

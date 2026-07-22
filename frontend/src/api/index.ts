@@ -107,6 +107,9 @@ export interface LoginResponse {
 // ==================== API 函数 ====================
 
 // 公开接口
+export const fetchSiteInfo = () =>
+  api.get<{ author: string }>('/api/site-info')
+
 export const fetchArticles = (
   page = 1,
   pageSize = 10,
