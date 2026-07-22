@@ -31,6 +31,7 @@ class Article(SQLModel, table=True):
     summary: Optional[str] = Field(default=None, sa_type=SAText)  # TEXT 类型
     cover_url: Optional[str] = Field(default=None, max_length=500)
     is_published: bool = Field(default=True)
+    read_count: int = Field(default=0)  # 阅读数
 
     # 外键：每篇文章属于一个分类
     category_id: Optional[int] = Field(default=None, foreign_key="categories.id")

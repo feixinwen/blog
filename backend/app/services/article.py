@@ -5,6 +5,7 @@ from sqlmodel import Session, select
 
 from app.models.article import Article, ArticleTagLink
 from app.models.category import Category
+from app.models.comment import Comment
 from app.schemas.article import ArticleListOut
 from app.schemas.common import PaginatedResponse
 
@@ -20,9 +21,18 @@ def list_articles(
 ) -> PaginatedResponse[ArticleListOut]:
     """文章列表（分页 + 分类/标签筛选），只返回已发布的文章"""
 
-    # 基础查询：已发布文章 + 关联分类表
+    # 评论数子查询
+    comment_count_sub = (
+        select(func.count(Comment.id))
+        .where(Comment.article_id == Article.id, Comment.is_visible == True)
+        .correlate(Article)
+        .scalar_subquery()
+        .label("comment_count")
+    )
+
+    # 基础查询：已发布文章 + 关联分类表 + 评论数
     query = (
-        select(Article, Category.name)
+        select(Article, Category.name, comment_count_sub)
         .join(Category, Article.category_id == Category.id, isouter=True)
         .where(Article.is_published == True)
     )
@@ -65,6 +75,8 @@ def list_articles(
             cover_url=row[0].cover_url,
             category_name=row[1],        # row[1] 是 Category.name
             category_slug=row[0].category.slug if row[0].category else None,
+            read_count=row[0].read_count,
+            comment_count=row[2] or 0,   # row[2] 是评论数（子查询）
             created_at=row[0].created_at,
         )
         for row in rows

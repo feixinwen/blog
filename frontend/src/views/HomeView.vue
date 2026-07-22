@@ -3,7 +3,6 @@ import { onMounted, ref } from 'vue'
 import { fetchArticles, type ArticleListItem } from '@/api'
 import AppHeader from '@/components/AppHeader.vue'
 import AppFooter from '@/components/AppFooter.vue'
-import Sidebar from '@/components/Sidebar.vue'
 import ArticleCard from '@/components/ArticleCard.vue'
 import Pagination from '@/components/Pagination.vue'
 import ParticleBackground from '@/components/ParticleBackground.vue'
@@ -47,17 +46,14 @@ onMounted(loadArticles)
     />
     <AppHeader />
     <div id="article-list" class="main-body">
-      <main class="content">
-        <ArticleCard v-for="a in articles" :key="a.id" :article="a" />
-        <div v-if="articles.length === 0" class="empty">还没有文章</div>
-        <Pagination
-          :page="page"
-          :total="total"
-          :page-size="pageSize"
-          @change="onPageChange"
-        />
-      </main>
-      <Sidebar />
+      <ArticleCard v-for="a in articles" :key="a.id" :article="a" />
+      <div v-if="articles.length === 0" class="empty">还没有文章</div>
+      <Pagination
+        :page="page"
+        :total="total"
+        :page-size="pageSize"
+        @change="onPageChange"
+      />
     </div>
     <AppFooter />
   </div>
@@ -71,20 +67,14 @@ onMounted(loadArticles)
   position: relative;
 }
 .main-body {
-  max-width: 1100px;
+  max-width: 860px;
   margin: 24px auto;
-  display: flex;
-  gap: 24px;
   flex: 1;
   width: 100%;
   padding: 0 20px;
   box-sizing: border-box;
   position: relative;
   z-index: 1;
-}
-.content {
-  flex: 1;
-  min-width: 0;
 }
 .empty {
   text-align: center;

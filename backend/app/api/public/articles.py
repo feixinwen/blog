@@ -1,11 +1,12 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlmodel import Session, select
+from sqlmodel import Session, func, select
 
 from app.core.deps import get_db
 from app.models.article import Article
 from app.models.category import Category
+from app.models.comment import Comment
 from app.schemas.article import ArticleDetailOut, ArticleListOut
 from app.schemas.common import PaginatedResponse
 from app.services.article import list_articles
@@ -32,33 +33,67 @@ def get_articles(
 
 @router.get("/{slug}", response_model=ArticleDetailOut)
 def get_article(slug: str, db: Session = Depends(get_db)):
-    """文章详情：根据 slug 获取文章全文"""
+    """文章详情：根据 slug 获取文章全文，阅读数 +1"""
     logger.info(f"请求文章详情: slug={slug}")
 
-    # 关联查询：文章 + 分类
-    article = db.exec(
+    row = db.exec(
         select(Article, Category.name)
         .join(Category, Article.category_id == Category.id, isouter=True)
         .where(Article.slug == slug, Article.is_published == True)
     ).first()
 
-    if article is None:
+    if row is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="文章不存在",
         )
 
-    # article 是 (Article对象, Category.name字符串) 的元组
-    row = article[0]  # Article 对象
+    article = row[0]
+
+    # 阅读数 +1
+    article.read_count += 1
+    db.add(article)
+    db.commit()
+    db.refresh(article)
+
+    # 评论数
+    comment_count = db.exec(
+        select(func.count()).where(
+            Comment.article_id == article.id, Comment.is_visible == True
+        )
+    ).one()
+
+    # 上一篇（更早发布的）
+    prev_article = db.exec(
+        select(Article.slug, Article.title)
+        .where(Article.is_published == True, Article.created_at < article.created_at)
+        .order_by(Article.created_at.desc())
+        .limit(1)
+    ).first()
+
+    # 下一篇（更晚发布的）
+    next_article = db.exec(
+        select(Article.slug, Article.title)
+        .where(Article.is_published == True, Article.created_at > article.created_at)
+        .order_by(Article.created_at.asc())
+        .limit(1)
+    ).first()
+
     return ArticleDetailOut(
-        id=row.id,
-        title=row.title,
-        slug=row.slug,
-        content=row.content,
-        summary=row.summary,
-        cover_url=row.cover_url,
-        category_name=article[1],  # 分类名来自 join
-        category_slug=row.category.slug if row.category else None,
-        created_at=row.created_at,
-        updated_at=row.updated_at,
+        id=article.id,
+        title=article.title,
+        slug=article.slug,
+        content=article.content,
+        summary=article.summary,
+        cover_url=article.cover_url,
+        category_name=row[1],
+        category_slug=article.category.slug if article.category else None,
+        read_count=article.read_count,
+        comment_count=comment_count,
+        prev_slug=prev_article[0] if prev_article else None,
+        prev_title=prev_article[1] if prev_article else None,
+        next_slug=next_article[0] if next_article else None,
+        next_title=next_article[1] if next_article else None,
+        created_at=article.created_at,
+        updated_at=article.updated_at,
     )

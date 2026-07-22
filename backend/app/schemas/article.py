@@ -12,6 +12,8 @@ class ArticleListOut(BaseModel):
     cover_url: str | None
     category_name: str | None
     category_slug: str | None
+    read_count: int
+    comment_count: int
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -27,6 +29,12 @@ class ArticleDetailOut(BaseModel):
     cover_url: str | None
     category_name: str | None
     category_slug: str | None
+    read_count: int
+    comment_count: int
+    prev_slug: str | None       # 上一篇 slug
+    prev_title: str | None      # 上一篇标题
+    next_slug: str | None       # 下一篇 slug
+    next_title: str | None      # 下一篇标题
     created_at: datetime
     updated_at: datetime
 

@@ -6,6 +6,7 @@ from sqlmodel import Session, select
 
 from app.core.deps import get_current_user, get_db
 from app.models.article import Article, ArticleTagLink
+from app.models.comment import Comment
 from app.models.user import User
 from app.schemas.article import ArticleDetailOut
 from app.schemas.article_admin import ArticleAdminDetail, ArticleCreate, ArticleUpdate
@@ -28,20 +29,7 @@ def admin_list_articles(
 
     result = []
     for article in articles:
-        result.append(
-            ArticleDetailOut(
-                id=article.id,
-                title=article.title,
-                slug=article.slug,
-                content=article.content,
-                summary=article.summary,
-                cover_url=article.cover_url,
-                category_name=article.category.name if article.category else None,
-                category_slug=article.category.slug if article.category else None,
-                created_at=article.created_at,
-                updated_at=article.updated_at,
-            )
-        )
+        result.append(_to_detail(article))
     return result
 
 
@@ -194,6 +182,10 @@ def _to_detail(article: Article) -> ArticleDetailOut:
         cover_url=article.cover_url,
         category_name=article.category.name if article.category else None,
         category_slug=article.category.slug if article.category else None,
+        read_count=article.read_count,
+        comment_count=0,
+        prev_slug=None, prev_title=None,
+        next_slug=None, next_title=None,
         created_at=article.created_at,
         updated_at=article.updated_at,
     )

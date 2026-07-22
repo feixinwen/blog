@@ -6,53 +6,73 @@ defineProps<{ article: ArticleListItem }>()
 </script>
 
 <template>
-  <article class="article-card">
-    <RouterLink :to="`/article/${article.slug}`" class="title-link">
-      <h2>{{ article.title }}</h2>
+  <article class="card">
+    <RouterLink :to="`/article/${article.slug}`" class="title">
+      {{ article.title }}
     </RouterLink>
-    <p class="summary">{{ article.summary || '暂无摘要' }}</p>
+
     <div class="meta">
-      <span v-if="article.category_name" class="category">
-        {{ article.category_name }}
-      </span>
-      <span class="date">{{ article.created_at.slice(0, 10) }}</span>
+      <span>发表于 {{ article.created_at.slice(0, 10) }}</span>
+      <span class="meta-divider">|</span>
+      <span>阅读 {{ article.read_count }}</span>
+      <span class="meta-divider">|</span>
+      <span>评论 {{ article.comment_count }}</span>
     </div>
+
+    <hr class="sep" />
+
+    <p class="summary">{{ article.summary || '暂无摘要' }}</p>
+
+    <RouterLink :to="`/article/${article.slug}`" class="read-more">阅读全文 &raquo;</RouterLink>
   </article>
 </template>
 
 <style scoped>
-.article-card {
+.card {
   background: #fff;
-  border-radius: 6px;
-  padding: 20px;
-  margin-bottom: 16px;
+  border-radius: 8px;
+  padding: 32px 36px 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
 }
-.title-link {
+.title {
+  font-size: 21px;
+  font-weight: 600;
+  color: #222;
   text-decoration: none;
+  line-height: 1.4;
 }
-.title-link h2 {
-  margin: 0 0 10px 0;
-  font-size: 20px;
-  color: #333;
-}
-.title-link:hover h2 {
+.title:hover {
   color: #4a90d9;
 }
-.summary {
-  color: #666;
-  font-size: 14px;
-  line-height: 1.6;
-  margin: 0 0 12px 0;
-}
 .meta {
-  display: flex;
-  gap: 16px;
+  margin-top: 10px;
   font-size: 13px;
   color: #999;
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
-.category {
-  background: #f0f4f8;
-  padding: 2px 10px;
-  border-radius: 10px;
+.meta-divider {
+  color: #ddd;
+}
+.sep {
+  border: none;
+  border-top: 1px solid #f0f0f0;
+  margin: 14px 0;
+}
+.summary {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.8;
+  margin: 0 0 14px;
+}
+.read-more {
+  font-size: 14px;
+  color: #4a90d9;
+  text-decoration: none;
+}
+.read-more:hover {
+  text-decoration: underline;
 }
 </style>

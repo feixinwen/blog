@@ -39,6 +39,8 @@ export interface ArticleListItem {
   cover_url: string | null
   category_name: string | null
   category_slug: string | null
+  read_count: number
+  comment_count: number
   created_at: string
 }
 
@@ -51,6 +53,12 @@ export interface ArticleDetail {
   cover_url: string | null
   category_name: string | null
   category_slug: string | null
+  read_count: number
+  comment_count: number
+  prev_slug: string | null
+  prev_title: string | null
+  next_slug: string | null
+  next_title: string | null
   created_at: string
   updated_at: string
 }
