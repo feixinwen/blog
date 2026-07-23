@@ -5,6 +5,7 @@ __pycache__/
 dist/
 venv/
 .env
+Blog-Agent/
 
 # Node
 node_modules/

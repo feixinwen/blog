@@ -1,11 +1,8 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { RouterLink } from 'vue-router'
+import AdminHeader from '@/components/AdminHeader.vue'
 import { fetchAdminArticles, deleteArticle, type ArticleDetail } from '@/api'
-
-const router = useRouter()
-const auth = useAuthStore()
 const articles = ref<ArticleDetail[]>([])
 
 onMounted(async () => {
@@ -22,16 +19,7 @@ async function handleDelete(id: number, title: string) {
 
 <template>
   <div class="admin-layout">
-    <header class="admin-header">
-      <nav>
-        <RouterLink to="/admin/articles">文章管理</RouterLink>
-        <RouterLink to="/admin/categories">分类管理</RouterLink>
-        <RouterLink to="/admin/tags">标签管理</RouterLink>
-        <RouterLink to="/admin/comments">评论管理</RouterLink>
-        <a href="/" target="_blank">查看博客</a>
-      </nav>
-      <button @click="auth.logout(); router.push('/admin/login')">退出登录</button>
-    </header>
+    <AdminHeader />
     <main class="admin-main">
       <div class="toolbar">
         <h2>文章管理</h2>
@@ -63,11 +51,6 @@ async function handleDelete(id: number, title: string) {
 
 <style scoped>
 .admin-layout { min-height: 100vh; background: #f5f6f7; }
-.admin-header { display: flex; justify-content: space-between; align-items: center; padding: 0 24px; height: 50px; background: #333; color: #fff; }
-.admin-header nav { display: flex; gap: 20px; }
-.admin-header a { color: #ccc; text-decoration: none; font-size: 14px; }
-.admin-header a:hover, .admin-header a.router-link-active { color: #fff; }
-.admin-header button { background: none; border: 1px solid #888; color: #ccc; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; }
 .admin-main { max-width: 1000px; margin: 24px auto; padding: 0 20px; }
 .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .toolbar h2 { margin: 0; font-size: 18px; }

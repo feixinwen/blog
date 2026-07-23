@@ -88,12 +88,14 @@ from app.api.admin.articles import router as admin_articles_router
 from app.api.admin.auth import router as admin_auth_router
 from app.api.admin.categories import router as admin_categories_router
 from app.api.admin.comments import router as admin_comments_router
+from app.api.admin.chat import router as admin_chat_router
 from app.api.admin.tags import router as admin_tags_router
 from app.api.admin.upload import router as admin_upload_router
 
 app.include_router(admin_auth_router)
 app.include_router(admin_articles_router)
 app.include_router(admin_categories_router)
+app.include_router(admin_chat_router)
 app.include_router(admin_comments_router)
 app.include_router(admin_tags_router)
 app.include_router(admin_upload_router)

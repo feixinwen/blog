@@ -61,6 +61,11 @@ const router = createRouter({
       component: () => import('@/views/admin/CommentsManage.vue'),
     },
     {
+      path: '/admin/chat',
+      name: 'admin-chat',
+      component: () => import('@/views/admin/ChatView.vue'),
+    },
+    {
       path: '/admin/categories',
       name: 'admin-categories',
       component: () => import('@/views/admin/CategoriesManage.vue'),

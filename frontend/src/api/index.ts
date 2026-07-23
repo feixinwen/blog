@@ -196,6 +196,27 @@ export const fetchAdminComments = () =>
 export const deleteComment = (id: number) =>
   api.delete(`/api/admin/comments/${id}`)
 
+export interface ChatResponse {
+  response: string
+  thread_id: string
+  ready_to_generate: boolean
+  topic: string
+}
+
+export const sendMessage = (message: string, threadId = 'default') =>
+  api.post<ChatResponse>('/api/admin/chat', { message, thread_id: threadId })
+
+export interface GenerateResult {
+  title: string
+  content: string
+  summary: string
+  tags: string[]
+  category: string | null
+}
+
+export const generateArticle = (topic: string) =>
+  api.post<GenerateResult>('/api/admin/generate', { topic })
+
 export const uploadImage = (file: File) => {
   const form = new FormData()
   form.append('file', file)
